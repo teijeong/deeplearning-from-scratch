@@ -7,6 +7,19 @@ class Variable:
     def __init__(self, data: np.ndarray):
         self.data = data
         self.grad: Optional[np.ndarray] = None
+        self.creator: Optional[Function] = None
+
+    def set_creator(self, func: 'Function'):
+        self.creator = func
+
+    def backward(self) -> None:
+        funcs = [self.creator]
+        while funcs:
+            f = funcs.pop()
+            x, y = f.input, f.output
+            x.grad = f.backward(y.grad)
+            if x.creator is not None:
+                funcs.append(x.creator)
 
 
 class Function:
@@ -15,7 +28,9 @@ class Function:
         x = input.data
         y = self.forward(x)
         output = Variable(y)
+        output.set_creator(self)
         self.input = input
+        self.output = output
         return output
 
     def forward(self, x: np.ndarray) -> np.ndarray:
@@ -44,9 +59,7 @@ class Exp(Function):
         gy = np.exp(x) * gy
         return gy
 
-
 if __name__ == '__main__':
-    print('Forward pass:')
     A = Square()
     B = Exp()
     C = Square()
@@ -55,10 +68,7 @@ if __name__ == '__main__':
     a = A(x)
     b = B(a)
     y = C(b)
-
-    print('Backward pass:')
+    
     y.grad = np.array(1.0)
-    b.grad = C.backward(y.grad)
-    a.grad = B.backward(b.grad)
-    x.grad = A.backward(a.grad)
-    print(x.grad)
+    y.backward()
+    print ('Automatic grad:', x.grad)
