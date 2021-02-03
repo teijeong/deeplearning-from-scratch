@@ -125,17 +125,36 @@ InputType = Union[Variable, np.ndarray, float, int]
 
 
 class Add(Function):
-    def forward(self, x0: np.ndarray, x1: np.ndarray) -> Tuple[np.ndarray]:
+    def forward(self, x0: np.ndarray, x1: np.ndarray) -> np.ndarray:
         y = x0 + x1
         return y
 
-    def backward(self, gy):
+    def backward(self, gy: np.ndarray) -> Tuple[np.ndarray]:
         return gy, gy
 
 
-def add(x0: Variable, x1: InputType) -> Tuple[Variable]:
+def add(x0: Variable, x1: InputType) -> Variable:
     x1 = as_array(x1)
     return Add()(x0, x1)
+
+
+class Sub(Function):
+    def forward(self, x0: np.ndarray, x1: np.ndarray) -> np.ndarray:
+        y = x0 - x1
+        return y
+
+    def backward(self, gy: np.ndarray) -> Tuple[np.ndarray]:
+        return gy, -gy
+
+
+def sub(x0: Variable, x1: InputType) -> Variable:
+    x1 = as_array(x1)
+    return Sub()(x0, x1)
+
+
+def rsub(x0: Variable, x1: InputType) -> Variable:
+    x1 = as_array(x1)
+    return Sub()(x1, x0)
 
 
 class Square(Function):
@@ -168,10 +187,91 @@ def mul(x0: Variable, x1: InputType) -> Variable:
     return Mul()(x0, x1)
 
 
-Variable.__mul__ = mul
-Variable.__rmul__ = mul
+class Div(Function):
+    def forward(self, x0: np.ndarray, x1: np.ndarray) -> np.ndarray:
+        y = x0 / x1
+        return y
+
+    def backward(self, gy: np.ndarray) -> Tuple[np.ndarray]:
+        x0, x1 = self.inputs[0].data, self.inputs[1].data
+        gx0 = gy / x1
+        gx1 = gy * (-x0 / x1 ** 2)
+        return gx0, gx1
+
+
+def div(x0: Variable, x1: InputType) -> Variable:
+    x1 = as_array(x1)
+    return Div()(x0, x1)
+
+
+def rdiv(x0: Variable, x1: InputType) -> Variable:
+    x1 = as_array(x1)
+    return Div()(x1, x0)
+
+
+class Neg(Function):
+    def forward(self, x: np.ndarray) -> np.ndarray:
+        return -x
+
+    def backward(self, gy: np.ndarray) -> np.ndarray:
+        return -gy
+
+
+def neg(x: Variable) -> Variable:
+    return Neg()(x)
+
+
+class Pow(Function):
+    def forward(self, x0: np.ndarray, x1: np.ndarray) -> np.ndarray:
+        y = x0 / x1
+        return y
+
+    def backward(self, gy: np.ndarray) -> Tuple[np.ndarray]:
+        x0, x1 = self.inputs[0].data, self.inputs[1].data
+        gx0 = gy / x1
+        gx1 = gy * (-x0 / x1 ** 2)
+        return gx0, gx1
+
+
+def div(x0: Variable, x1: InputType) -> Variable:
+    x1 = as_array(x1)
+    return Div()(x0, x1)
+
+
+def rdiv(x0: Variable, x1: InputType) -> Variable:
+    x1 = as_array(x1)
+    return Div()(x1, x0)
+
+
+class Pow(Function):
+    def __init__(self, c: Union[float, int]):
+        self.c = c
+
+    def forward(self, x: np.ndarray) -> np.ndarray:
+        y = x ** self.c
+        return y
+
+    def backward(self, gy: np.ndarray) -> np.ndarray:
+        x = self.inputs[0].data
+        c = self.c
+        gx = c * x ** (c - 1) * gy
+        return gx
+
+def pow(x: Variable, c: Union[float, int]) -> Variable:
+    return Pow(c)(x)
+
+
+
 Variable.__add__ = add
 Variable.__radd__ = add
+Variable.__sub__ = sub
+Variable.__rsub__ = rsub
+Variable.__mul__ = mul
+Variable.__rmul__ = mul
+Variable.__truediv__ = div
+Variable.__rtruediv__ = rdiv
+Variable.__neg__ = neg
+Variable.__pow__ = pow
 
 
 @contextlib.contextmanager
@@ -190,30 +290,21 @@ def no_grad():
 
 if __name__ == '__main__':
    x = Variable(np.array(2.0))
-   y = x + np.array(3.0)
+   y = -x
    print(y)
 
    x = Variable(np.array(2.0))
-   y = x + 3.0
-   print(y)
+   y1 = 2.0 - x
+   y2 = x - 1.0
+   print(y1)
+   print(y2)
 
    x = Variable(np.array(2.0))
-   y = 3.0 * x + 1.0
-   print(y)
+   y1 = 3.0 / x
+   y2 = x / 3.0
+   print(y1)
+   print(y2)
 
-   x = Variable(np.array([1.0]))
-   y = np.array([2.0]) + x
+   x = Variable(np.array(2.0))
+   y = x ** 3
    print(y)
-
-   x = Variable(np.array([1.0]))
-   y = x + np.array([2.0])
-   print(y)
-
-   x = Variable(np.array(1.0))
-   y = np.array([2.0]) + x
-   print(y)
-
-   x = Variable(np.array(1.0))
-   y = x + np.array([2.0])
-   print(y)
-
