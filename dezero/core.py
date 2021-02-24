@@ -15,6 +15,20 @@ class Config:
     enable_backprop = True
 
 
+@contextlib.contextmanager
+def using_config(name: str, value: Any):
+    old_value = getattr(Config, name)
+    setattr(Config, name, value)
+    try:
+        yield
+    finally:
+        setattr(Config, name, old_value)
+
+
+def no_grad():
+    return using_config('enable_backprop', False)
+
+
 class Variable:
     # __array_priority__ = 200
 
@@ -24,7 +38,7 @@ class Variable:
 
         self.data = data
         self.name = name
-        self.grad: Optional[np.ndarray] = None
+        self.grad: Optional[Variable] = None
         self.creator: Optional[Function] = None
         self.generation = 0
 
@@ -32,9 +46,9 @@ class Variable:
         self.creator = func
         self.generation = func.generation + 1
 
-    def backward(self, retain_grad=False) -> None:
+    def backward(self, retain_grad=False, create_graph=False) -> None:
         if self.grad is None:
-            self.grad = np.ones_like(self.data)
+            self.grad = Variable(np.ones_like(self.data))
 
         funcs = []
         seen_set = set()
@@ -50,22 +64,24 @@ class Variable:
         while funcs:
             f = funcs.pop()
             gys = [output().grad for output in f.outputs]
-            gxs = f.backward(*gys)
-            if not isinstance(gxs, tuple):
-                gxs = (gxs,)
 
-            for x, gx in zip(f.inputs, gxs):
-                if x.grad is None:
-                    x.grad = gx
-                else:
-                    x.grad = x.grad + gx
+            with using_config('enable_backprop', create_graph):
+                gxs = f.backward(*gys)
+                if not isinstance(gxs, tuple):
+                    gxs = (gxs,)
 
-                if x.creator is not None:
-                    add_func(x.creator)
+                for x, gx in zip(f.inputs, gxs):
+                    if x.grad is None:
+                        x.grad = gx
+                    else:
+                        x.grad = x.grad + gx
 
-            if not retain_grad:
-                for y in f.outputs:
-                    y().grad = None
+                    if x.creator is not None:
+                        add_func(x.creator)
+
+                if not retain_grad:
+                    for y in f.outputs:
+                        y().grad = None
 
     def cleargrad(self) -> None:
         self.grad = None
@@ -182,7 +198,7 @@ class Mul(Function):
         return y
 
     def backward(self, gy: np.ndarray) -> Tuple[np.ndarray]:
-        x0, x1 = self.inputs[0].data, self.inputs[1].data
+        x0, x1 = self.inputs
         return gy * x1, gy * x0
 
 
@@ -197,7 +213,7 @@ class Div(Function):
         return y
 
     def backward(self, gy: np.ndarray) -> Tuple[np.ndarray]:
-        x0, x1 = self.inputs[0].data, self.inputs[1].data
+        x0, x1 = self.inputs
         gx0 = gy / x1
         gx1 = gy * (-x0 / x1 ** 2)
         return gx0, gx1
@@ -231,7 +247,7 @@ class Pow(Function):
         return y
 
     def backward(self, gy: np.ndarray) -> Tuple[np.ndarray]:
-        x0, x1 = self.inputs[0].data, self.inputs[1].data
+        x0, x1 = self.inputs
         gx0 = gy / x1
         gx1 = gy * (-x0 / x1 ** 2)
         return gx0, gx1
@@ -256,29 +272,14 @@ class Pow(Function):
         return y
 
     def backward(self, gy: np.ndarray) -> np.ndarray:
-        x = self.inputs[0].data
+        x = self.inputs[0]
         c = self.c
         gx = c * x ** (c - 1) * gy
         return gx
 
+
 def pow(x: Variable, c: Union[float, int]) -> Variable:
     return Pow(c)(x)
-
-
-
-
-@contextlib.contextmanager
-def using_config(name: str, value: Any):
-    old_value = getattr(Config, name)
-    setattr(Config, name, value)
-    try:
-        yield
-    finally:
-        setattr(Config, name, old_value)
-
-
-def no_grad():
-    return using_config('enable_backprop', False)
 
 
 def setup_variable():
