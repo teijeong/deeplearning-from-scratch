@@ -29,3 +29,18 @@ class Cos(core.Function):
 
 def cos(x: core.Variable) -> core.Variable:
     return Cos()(x)
+
+
+class Tanh(core.Function):
+    def forward(self, x: np.ndarray) -> np.ndarray:
+        y = np.tanh(x)
+        return y
+
+    def backward(self, gy: np.ndarray) -> np.ndarray:
+        y = self.outputs[0]()
+        gx = gy * (1 - y ** 2)
+        return gx
+
+
+def tanh(x: core.Variable) -> core.Variable:
+    return Tanh()(x)
