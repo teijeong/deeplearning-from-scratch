@@ -3,8 +3,6 @@ if '__file__' in globals():
     import sys
     sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-import math
-
 import dezero as dz
 import numpy as np
 
