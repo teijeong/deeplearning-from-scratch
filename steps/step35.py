@@ -4,7 +4,6 @@ if '__file__' in globals():
     sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 import dezero as dz
 from dezero import functions as F
