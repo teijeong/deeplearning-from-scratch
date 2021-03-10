@@ -4,6 +4,7 @@ import weakref
 
 import numpy as np
 
+import dezero as dz
 
 def as_array(x: Union[float, np.ndarray]) -> np.ndarray:
     if np.isscalar(x):
@@ -86,6 +87,14 @@ class Variable:
     def cleargrad(self) -> None:
         self.grad = None
 
+    def reshape(self, *shape: Union[int, Sequence[int]]) -> "Variable":
+        if len(shape) == 1 and isinstance(shape[0], (tuple, list)):
+            shape = shape[0]
+        return dz.functions.reshape(self, shape)
+
+    def transpose(self) -> "Variable":
+        return dz.functions.transpose(self)
+
     @property
     def shape(self) -> Tuple[int, ...]:
         return self.data.shape
@@ -97,6 +106,11 @@ class Variable:
     @property
     def dtype(self) -> np.dtype:
         return self.data.dtype
+
+    @property
+    def T(self) -> "Variable":
+        return dz.functions.transpose(self)
+    
     
     def __len__(self) -> int:
         return len(self.data)
