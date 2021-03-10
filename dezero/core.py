@@ -95,6 +95,12 @@ class Variable:
     def transpose(self) -> "Variable":
         return dz.functions.transpose(self)
 
+    def sum(
+            self,
+            axis: Optional[Union[int, Sequence[int]]],
+            keepdims: bool = False) -> "Variable":
+        return dz.functions.sum(self, axis, keepdims)
+
     @property
     def shape(self) -> Tuple[int, ...]:
         return self.data.shape

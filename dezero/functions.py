@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Optional, Sequence, Union
 
 from dezero import core
 import numpy as np
@@ -49,7 +49,7 @@ def tanh(x: core.Variable) -> core.Variable:
 
 
 class Reshape(core.Function):
-    def __init__(self, shape: Tuple[int]):
+    def __init__(self, shape: Sequence[int]):
         self.shape = shape
 
     def forward(self, x: np.ndarray) -> np.ndarray:
@@ -61,7 +61,7 @@ class Reshape(core.Function):
         return reshape(gy, self.x_shape)
 
 
-def reshape(x: core.Variable, shape: Tuple[int]) -> core.Variable:
+def reshape(x: core.Variable, shape: Sequence[int]) -> core.Variable:
     if x.shape == shape:
         return core.as_variable(x)
     return Reshape(shape)(x)
@@ -79,3 +79,30 @@ class Transpose(core.Function):
 
 def transpose(x: core.Variable) -> core.Variable:
     return Transpose()(x)
+
+
+class Sum(core.Function):
+    def __init__(
+            self,
+            axis: Optional[Union[int, Sequence[int]]],
+            keepdims: bool):
+        self.axis = axis
+        self.keepdims = keepdims
+
+    def forward(self, x: np.ndarray) -> np.ndarray:
+        self.x_shape = x.shape
+        y = x.sum(axis=self.axis, keepdims=self.keepdims)
+        return y
+
+    def backward(self, gy: np.ndarray) -> np.ndarray:
+        gy = utils.reshape_sum_backward(
+            gy, self.x_shape, self.axis, self.keepdims)
+        gx = broadcast_to(gy, self.x_shape)
+        return gx
+
+
+def sum(
+        x: core.Variable,
+        axis: Optional[Union[int, Sequence[int]]],
+        keepdims: bool = False) -> core.Variable:
+    return Sum(axis, keepdims)(x)
