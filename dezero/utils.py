@@ -2,6 +2,10 @@ import os
 import subprocess
 import tempfile
 
+from typing import Optional, Sequence, Union
+
+import numpy as np
+
 import dezero as dz
 
 def _dot_var(v: dz.Variable, verbose=False) -> str:
@@ -65,7 +69,7 @@ def plot_dot_graph(output: dz.Variable, verbose=True,
 # =============================================================================
 # Utility functions for numpy (numpy magic)
 # =============================================================================
-def sum_to(x: np.ndarray, shape: Tuple[int]) -> np.ndarray:
+def sum_to(x: np.ndarray, shape: Sequence[int]) -> np.ndarray:
     """Sums elements along axes to output an array of a given shape.
 
     Args:

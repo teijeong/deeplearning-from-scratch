@@ -1,6 +1,7 @@
 from typing import Optional, Sequence, Union
 
 from dezero import core
+from dezero import utils
 import numpy as np
 
 class Sin(core.Function):
@@ -106,3 +107,45 @@ def sum(
         axis: Optional[Union[int, Sequence[int]]],
         keepdims: bool = False) -> core.Variable:
     return Sum(axis, keepdims)(x)
+
+
+class SumTo(core.Function):
+    def __init__(
+            self, shape: Sequence[int]):
+        self.shape = shape
+
+    def forward(self, x: np.ndarray) -> np.ndarray:
+        self.x_shape = x.shape
+        y = utils.sum_to(x, self.shape)
+        return y
+
+    def backward(self, gy: np.ndarray) -> np.ndarray:
+        gx = sum_to(gy, self.x_shape)
+        return gx
+
+
+def sum_to(x: core.Variable, shape: Sequence[int]):
+    if x.shape == shape:
+        return core.as_variable(x)
+    return SumTo(shape)(x)
+
+
+class BroadcastTo(core.Function):
+    def __init__(
+            self, shape: Sequence[int]):
+        self.shape = shape
+
+    def forward(self, x: np.ndarray) -> np.ndarray:
+        self.x_shape = x.shape
+        y = np.broadcast_to(x, self.shape)
+        return y
+
+    def backward(self, gy: np.ndarray) -> np.ndarray:
+        gx = sum_to(gy, self.x_shape)
+        return gx
+
+
+def broadcast_to(x: core.Variable, shape: Sequence[int]):
+    if x.shape == shape:
+        return core.as_variable(x)
+    return BroadcastTo(shape)(x)

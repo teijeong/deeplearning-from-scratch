@@ -1,5 +1,5 @@
 import contextlib
-from typing import Any, List, Sequence, Tuple, Union
+from typing import Any, List, Optional, Sequence, Tuple, Union
 import weakref
 
 import numpy as np
@@ -166,11 +166,16 @@ InputType = Union[Variable, np.ndarray, float, int]
 
 class Add(Function):
     def forward(self, x0: np.ndarray, x1: np.ndarray) -> np.ndarray:
+        self.x0_shape, self.x1_shape = x0.shape, x1.shape
         y = x0 + x1
         return y
 
     def backward(self, gy: np.ndarray) -> Tuple[np.ndarray]:
-        return gy, gy
+        gx0, gx1 = gy, gy
+        if self.x0_shape != self.x1_shape:
+            gx0 = dz.functions.sum_to(gx0, self.x0_shape)
+            gx1 = dz.functions.sum_to(gx1, self.x1_shape)
+        return gx0, gx1
 
 
 def add(x0: Variable, x1: InputType) -> Variable:
