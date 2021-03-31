@@ -124,7 +124,7 @@ class SumTo(core.Function):
         return gx
 
 
-def sum_to(x: core.Variable, shape: Sequence[int]):
+def sum_to(x: core.Variable, shape: Sequence[int]) -> core.Variable:
     if x.shape == shape:
         return core.as_variable(x)
     return SumTo(shape)(x)
@@ -145,7 +145,7 @@ class BroadcastTo(core.Function):
         return gx
 
 
-def broadcast_to(x: core.Variable, shape: Sequence[int]):
+def broadcast_to(x: core.Variable, shape: Sequence[int]) -> core.Variable:
     if x.shape == shape:
         return core.as_variable(x)
     return BroadcastTo(shape)(x)
@@ -183,3 +183,64 @@ class MeanSquaredError(core.Function):
 
 def mean_squared_error(x0: core.Variable, x1: core.Variable) -> core.Variable:
     return MeanSquaredError()(x0, x1)
+
+
+class Linear(core.Function):
+    def forward(
+        self,
+        x: np.ndarray,
+        W: np.ndarray,
+        b: Optional[np.ndarray]) -> np.ndarray:
+        y = x.dot(W)
+        if b is not None:
+            y += b
+        return y
+
+    def backward(self, gy: np.ndarray) -> np.ndarray:
+        x, W, b = self.inputs
+        gb = None if b.data is None else sum_to(gy, b.shape)
+        gx = matmul(gy, W.T)
+        gW = matmul(x.T, gy)
+        return gx, gW, gb
+
+
+def linear(
+    x: core.Variable,
+    W: core.Variable,
+    b: Optional[core.Variable]=None) -> core.Variable:
+    return Linear()(x, W, b)
+
+
+def linear_simple(
+    x: core.Variable,
+    W: core.Variable,
+    b: Optional[core.Variable]=None) -> core.Variable:
+    t = matmul(x, W)
+    if b is None:
+        return t
+
+    y = t + b
+    t.data = None  # Release t.data (ndarray) for memory efficiency
+    return y
+
+
+def sigmoid_simple(x: Union[np.ndarray, core.Variable]) -> core.Variable:
+    x = as_variable(x)
+    y = 1 / (1 + exp(-x))
+    return y
+
+
+class Sigmoid(core.Function):
+    def forward(self, x: np.ndarray) -> np.ndarray:
+        # y = 1 / (1 + xp.exp(-x))
+        y = np.tanh(x * 0.5) * 0.5 + 0.5  # Better implementation
+        return y
+
+    def backward(self, gy: np.ndarray) -> np.ndarray:
+        y = self.outputs[0]()
+        gx = gy * y * (1 - y)
+        return gx
+
+
+def sigmoid(x: core.Variable) -> core.Variable:
+    return Sigmoid()(x)

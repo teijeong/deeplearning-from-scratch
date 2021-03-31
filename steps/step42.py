@@ -17,25 +17,25 @@ W = dz.Variable(np.zeros((1, 1)))
 b = dz.Variable(np.zeros(1))
 
 def predict(x: dz.Variable) -> dz.Variable:
-	y = F.matmul(x, W) + b
-	return y
+    y = F.matmul(x, W) + b
+    return y
 
 def mean_squared_error(x0: dz.Variable, x1: dz.Variable) -> dz.Variable:
-	diff = x0 - x1
-	return F.sum(diff ** 2) / len(diff)
+    diff = x0 - x1
+    return F.sum(diff ** 2) / len(diff)
 
 
 LR = 0.1
 NUM_ITER = 100
 
 for _ in range(NUM_ITER):
-	y_pred = predict(x)
-	loss = mean_squared_error(y, y_pred)
+    y_pred = predict(x)
+    loss = mean_squared_error(y, y_pred)
 
-	W.cleargrad()
-	x.cleargrad()
-	loss.backward()
+    W.cleargrad()
+    x.cleargrad()
+    loss.backward()
 
-	W.data -= LR * W.grad.data
-	b.data -= LR * b.grad.data
-	print(W, b, loss)
+    W.data -= LR * W.grad.data
+    b.data -= LR * b.grad.data
+    print(W, b, loss)
