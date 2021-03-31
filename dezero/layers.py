@@ -11,7 +11,7 @@ class Layer:
         self._params: MutableSet[core.Parameter] = set()
 
     def __setattr__(self, name: str, value: Any) -> None:
-        if isinstance(value, core.Parameter):
+        if isinstance(value, (core.Parameter, Layer)):
             self._params.add(name)
         super().__setattr__(name, value)
 
@@ -30,7 +30,11 @@ class Layer:
 
     def params(self) -> Iterator[core.Parameter]:
         for name in self._params:
-            yield self.__dict__[name]
+            obj = self.__dict__[name]
+            if isinstance(obj, Layer):
+                yield from obj.params()
+            else:
+                yield obj
 
     def cleargrads(self) -> None:
         for param in self.params():
