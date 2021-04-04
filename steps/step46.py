@@ -15,12 +15,12 @@ np.random.seed(0)
 x = np.random.rand(100, 1)
 y = np.sin(2 * np.pi * x) + np.random.rand(100, 1)
 
-lr = 0.2
-max_iter = 10000
+lr = 0.1
+max_iter = 2000  # MomentunSGD needs fewer iters
 hidden_size = 10
 
 model = models.MLP((hidden_size, 1))
-optimizer = optimizers.SGD(lr).setup(model)
+optimizer = optimizers.MomentumSGD(lr).setup(model)
 
 for i in range(max_iter):
     y_pred = model(x)
@@ -30,7 +30,7 @@ for i in range(max_iter):
     loss.backward()
     optimizer.update()
     
-    if i % 1000 == 0:
+    if i % 100 == 0:
         print(loss)
 
 import matplotlib.pyplot as plt
