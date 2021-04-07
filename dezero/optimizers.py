@@ -1,4 +1,6 @@
-from typing import Callable, Optional, List
+from typing import Callable, Dict, Optional, List
+
+import numpy as np
 
 import dezero as dz
 from dezero import core
@@ -40,3 +42,21 @@ class SGD(Optimizer):
 
     def update_one(self, param: core.Parameter) -> None:
         param.data -= self.lr * param.grad.data
+
+
+class MomentumSGD(Optimizer):
+    def __init__(self, lr=0.01, momentum=0.9) -> None:
+        super().__init__()
+        self.lr = lr
+        self.momentum = momentum
+        self.vs: Dict[int, np.ndarray] = {}
+
+    def update_one(self, param: core.Parameter) -> None:
+        v_key = id(param)
+        if v_key not in self.vs:
+            self.vs[v_key] = np.zeros_like(param.data)
+
+        v = self.vs[v_key]
+        v *= self.momentum
+        v -= self.lr * param.grad.data
+        param.data += v

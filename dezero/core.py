@@ -318,6 +318,7 @@ def setup_variable():
     Variable.__rtruediv__ = rdiv
     Variable.__neg__ = neg
     Variable.__pow__ = pow
+    Variable.__getitem__ = dz.functions.get_item
 
 
 class Parameter(Variable):
